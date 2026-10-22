@@ -9,28 +9,21 @@ Jednoduchý program pro tisk účtenky v hospodě (Java, Maven).
 
 | Třída | K čemu je |
 |---|---|
-| `Main` | spouští program, propojuje ostatní třídy |
-| `InfoOProgramu` | název a verze |
-| `Provozovna` | statické údaje o hospodě (název, adresa, IČO, patička) |
-| `Polozka` | jedna položka menu (kód, název, cena) |
-| `Menu` | všechny položky menu |
-| `PolozkaObjednavky` | položka + počet kusů |
-| `Objednavka` | co si zákazník objednal, celkový součet |
-| `NacitacSouboru` | čte `provozovna.properties` a `menu.csv` |
-| `VstupUzivatele` | čte objednávku z příkazové řádky |
-| `TiskUctenky` | poskládá a naformátuje účtenku |
+| `Main` | spouští program, název a verze |
+| `Menu` | jídla a pití s cenami, načtené z `menu.csv` |
+| `Podnik` | název, adresa, IČO, patička, načtené z `podnik.properties` |
+| `Uctenka` | zeptá se uživatele, co si koupil, sečte to a vytvoří účtenku |
 
 ## Doporučený postup práce
 1. **Git + GitHub**: jeden založí repozitář a nahraje tuhle kostru, ostatní ho naklonují.
    Každý pracuje na své větvi a mergují se přes Pull Request – tak je vidět, že přispěli všichni.
 2. **pom.xml**: doplnit JUnit 5 a plugin pro spustitelný jar, ověřit, že `mvn package` projde.
-3. **Rozdělení práce** (třídy jsou na sobě málo závislé, dá se dělat paralelně):
-   - člověk A: `Polozka`, `Menu`, `NacitacSouboru` + data v souborech
-   - člověk B: `PolozkaObjednavky`, `Objednavka`, `VstupUzivatele`
-   - člověk C: `TiskUctenky`, `Main`, `InfoOProgramu`, README
+3. **Rozdělení práce** (dá se dělat paralelně):
+   - člověk A: `Menu` + `menu.csv`
+   - člověk B: `Podnik` + `podnik.properties`, `Main`, README
+   - člověk C: `Uctenka`
    - každý píše testy ke svým třídám
-4. **Pořadí**: nejdřív datové třídy (`Polozka`, `Provozovna`, `PolozkaObjednavky`, `Objednavka`),
-   pak načítání a vstup, nakonec tisk a `Main`.
+4. **Pořadí**: nejdřív `Menu` a `Podnik` (na nich `Uctenka` závisí), pak `Uctenka`, nakonec `Main`.
 5. Na konci společně zkusit program „rozbít“ nesmyslnými vstupy (prázdný vstup, písmena,
    chybějící soubor, diakritika v konzoli…).
 

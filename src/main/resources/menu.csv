@@ -1,4 +1,4 @@
-# Menu hospody, jeden řádek = jedna položka, formát: kod;nazev;cena
+# Menu podniku, jeden řádek = jedna položka, formát: nazev;cena
 # Řádky začínající # jsou komentáře (nutno přeskočit při načítání).
 # Příklad:
-# 1;Plzeň 0,5l;59.00
+# Pivo 0,5l;59.00
