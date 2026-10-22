@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Konfigurace Mavenu. Tady budete potřebovat:
+  - groupId, artifactId a VERZI programu (např. 1.0.0 - sémantické verzování MAJOR.MINOR.PATCH)
+  - nastavení verze Javy (maven.compiler.release = 21) a kódování (project.build.sourceEncoding = UTF-8)
+  - závislost na JUnit 5 (scope test) kvůli unit testům
+  - plugin, který z projektu udělá spustitelný .jar (maven-jar-plugin s nastavenou Main-Class),
+    aby šel program spustit příkazem: java -jar target/uctenka-<verze>.jar
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>cz.uctenka</groupId>
+    <artifactId>uctenka</artifactId>
+    <version>0.1.0</version>
+
+    <!-- TODO: properties, dependencies (JUnit 5), build/plugins (spustitelný jar) -->
+</project>
