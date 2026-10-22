@@ -1,4 +1,8 @@
-# Menu podniku, jeden řádek = jedna položka, formát: nazev;cena
-# Řádky začínající # jsou komentáře (nutno přeskočit při načítání).
-# Příklad:
-# Pivo 0,5l;59.00
+# Menu podniku, jeden radek = jedna polozka, format: nazev;cena (cena v celych Kc)
+# Radky zacinajici # jsou komentare.
+Cola;30
+Pivo;45
+Kofola;35
+Burger;70
+Hranolky;40
+Smazeny syr;120

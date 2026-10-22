@@ -1,11 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Konfigurace Mavenu. Tady budete potřebovat:
-  - groupId, artifactId a VERZI programu (např. 1.0.0 - sémantické verzování MAJOR.MINOR.PATCH)
-  - nastavení verze Javy (maven.compiler.release = 21) a kódování (project.build.sourceEncoding = UTF-8)
-  - závislost na JUnit 5 (scope test) kvůli unit testům
-  - plugin, který z projektu udělá spustitelný .jar (maven-jar-plugin s nastavenou Main-Class),
-    aby šel program spustit příkazem: java -jar target/uctenka-<verze>.jar
+  Nastaveni pro Maven (volitelne, program jde sestavit i bez nej pres sestav.bat).
+  Verzi programu menit tady v <version> a zaroven v Main.java (konstanta VERZE).
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -14,7 +10,41 @@
 
     <groupId>cz.uctenka</groupId>
     <artifactId>uctenka</artifactId>
-    <version>0.1.0</version>
+    <version>1.0.0</version>
 
-    <!-- TODO: properties, dependencies (JUnit 5), build/plugins (spustitelný jar) -->
+    <properties>
+        <maven.compiler.release>21</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.11.4</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.2</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.4.2</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>cz.uctenka.Main</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

@@ -1,15 +1,41 @@
 package cz.uctenka;
 
+import java.io.IOException;
+import java.util.Scanner;
+
 public class Main {
-    // Vstupní bod programu (metoda main) + název a verze programu.
-    //   - konstanty NAZEV a VERZE (např. "Uctenka", "1.0.0"), verzi držet stejnou jako <version> v pom.xml
-    //
-    // Průběh v main():
-    //   1. vypsat název a verzi
-    //   2. vytvořit Podnik (načte se ze souboru podnik.properties)
-    //   3. vytvořit Menu (načte se ze souboru menu.csv)
-    //   4. vytvořit Uctenka, nechat uživatele zadat, co si koupil
-    //   5. vypsat účtenku
-    //
-    // Chyby (chybí soubor, špatný formát) odchytit a vypsat srozumitelnou hlášku, ne stacktrace.
+    public static final String NAZEV = "Uctenka";
+    // držet stejnou jako <version> v pom.xml
+    public static final String VERZE = "1.0.0";
+
+    public static void main(String[] args) {
+        System.out.println(NAZEV + " " + VERZE);
+        System.out.println();
+
+        Podnik podnik;
+        Menu menu;
+        try {
+            podnik = new Podnik("podnik.properties");
+            menu = new Menu("menu.csv");
+        } catch (IOException e) {
+            System.out.println("Chyba pri nacitani souboru: " + e.getMessage());
+            return;
+        }
+
+        menu.vypis();
+        System.out.println();
+        System.out.println("Zadejte cislo polozky a Enter, H = hotovo.");
+
+        Uctenka uctenka = new Uctenka(podnik, menu);
+        Scanner scanner = new Scanner(System.in);
+        uctenka.nactiNakup(scanner);
+
+        if (uctenka.jePrazdna()) {
+            System.out.println("Nic jste neobjednali, uctenka se netiskne.");
+            return;
+        }
+
+        System.out.println();
+        System.out.print(uctenka.vytvorText());
+    }
 }
