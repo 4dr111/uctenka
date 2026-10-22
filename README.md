@@ -4,7 +4,7 @@ Jednoduchý program pro tisk účtenky v kavárně / hospodě. Spouští se z p�
 vypíše menu, uživatel zadává čísla položek a po zadání `H` (hotovo) se vytiskne účtenka.
 
 ## Autoři
-- Adriano Lo Scalzo, Juraj Šula, Adriana Mečava, Simona Kundrátová
+- Adriano Lo Scalzo, Juraj Šula, Adriana Mećava, Simona Kundrátová
 
 ## Ukázka
 
