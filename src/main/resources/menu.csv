@@ -1,5 +1,3 @@
-# Menu podniku, jeden radek = jedna polozka, format: nazev;cena (cena v celych Kc)
-# Radky zacinajici # jsou komentare.
 Cola;30
 Pivo;45
 Kofola;35

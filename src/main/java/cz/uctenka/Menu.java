@@ -1,10 +1,9 @@
 package cz.uctenka;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -12,62 +11,79 @@ import java.util.Map;
 
 public class Menu {
 
-    // název položky -> cena v Kč (LinkedHashMap drží pořadí, v jakém jsou položky přidané)
-    private final Map<String, Integer> polozky = new LinkedHashMap<>();
+    private final Map<String, BigDecimal> polozky = new LinkedHashMap<>();
 
-    // nazevSouboru = soubor v src/main/resources (např. "menu.csv"), řádek = nazev;cena
-    public Menu(String nazevSouboru) throws IOException {
-        InputStream input = Menu.class.getResourceAsStream("/" + nazevSouboru);
-        if (input == null) {
-            throw new IOException("Soubor " + nazevSouboru + " nebyl nalezen");
-        }
-
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
-            String radek;
-            int cisloRadku = 0;
-            while ((radek = reader.readLine()) != null) {
-                cisloRadku++;
-                radek = radek.trim();
-                // prázdné řádky a komentáře přeskočit
-                if (radek.isEmpty() || radek.startsWith("#")) {
-                    continue;
-                }
-
-                String[] casti = radek.split(";");
-                if (casti.length != 2) {
-                    throw new IOException("Spatny format na radku " + cisloRadku + " v " + nazevSouboru);
-                }
-
-                int cena;
-                try {
-                    cena = Integer.parseInt(casti[1].trim());
-                } catch (NumberFormatException e) {
-                    throw new IOException("Spatna cena na radku " + cisloRadku + " v " + nazevSouboru);
-                }
-                if (cena < 0) {
-                    throw new IOException("Zaporna cena na radku " + cisloRadku + " v " + nazevSouboru);
-                }
-
-                polozky.put(casti[0].trim(), cena);
+    public Menu(String obsah, String zdroj) throws IOException {
+        String[] radky = obsah.split("\\R");
+        for (int i = 0; i < radky.length; i++) {
+            int cisloRadku = i + 1;
+            String radek = radky[i].trim();
+            if (radek.isEmpty() || radek.startsWith("#")) {
+                continue;
             }
+
+            String[] casti = radek.split(";", -1);
+            if (casti.length != 2) {
+                throw new IOException("Spatny format na radku " + cisloRadku + " v " + zdroj
+                        + " (ma byt nazev;cena)");
+            }
+
+            String nazev = casti[0].trim();
+            if (nazev.isEmpty()) {
+                throw new IOException("Chybi nazev polozky na radku " + cisloRadku + " v " + zdroj);
+            }
+            if (polozky.containsKey(nazev)) {
+                throw new IOException("Polozka " + nazev + " je v " + zdroj + " dvakrat (radek " + cisloRadku + ")");
+            }
+
+            polozky.put(nazev, nactiCenu(casti[1].trim(), cisloRadku, zdroj));
         }
 
         if (polozky.isEmpty()) {
-            throw new IOException("Menu v " + nazevSouboru + " je prazdne");
+            throw new IOException("Menu v " + zdroj + " je prazdne");
         }
     }
 
-    // je položka v menu?
+    public static Menu zeSouboru(Path cesta) throws IOException {
+        return new Menu(Soubor.nactiSoubor(cesta), cesta.toString());
+    }
+
+    public static Menu vychozi() throws IOException {
+        return new Menu(Soubor.nactiZProgramu("menu.csv"), "menu.csv");
+    }
+
+    private static BigDecimal nactiCenu(String text, int cisloRadku, String zdroj) throws IOException {
+        BigDecimal cena;
+        try {
+            cena = new BigDecimal(text.replace(',', '.'));
+        } catch (NumberFormatException e) {
+            throw new IOException("Spatna cena na radku " + cisloRadku + " v " + zdroj);
+        }
+        if (cena.signum() < 0) {
+            throw new IOException("Zaporna cena na radku " + cisloRadku + " v " + zdroj);
+        }
+        if (cena.stripTrailingZeros().scale() > 2) {
+            throw new IOException("Cena na radku " + cisloRadku + " v " + zdroj + " ma vic nez 2 desetinna mista");
+        }
+        return cena.setScale(2, RoundingMode.UNNECESSARY);
+    }
+
+    public static String formatuj(BigDecimal castka) {
+        return castka.setScale(2, RoundingMode.HALF_UP).toPlainString().replace('.', ',');
+    }
+
     public boolean obsahuje(String nazev) {
         return polozky.containsKey(nazev);
     }
 
-    // cena položky (před voláním ověřit přes obsahuje(), jinak vrátí null)
-    public Integer getCena(String nazev) {
+    public BigDecimal getCena(String nazev) {
         return polozky.get(nazev);
     }
 
-    // název položky podle čísla z menu (číslováno od 1), nebo null, když takové číslo není
+    public int getPocet() {
+        return polozky.size();
+    }
+
     public String getNazev(int cislo) {
         List<String> nazvy = new ArrayList<>(polozky.keySet());
         if (cislo < 1 || cislo > nazvy.size()) {
@@ -76,12 +92,14 @@ public class Menu {
         return nazvy.get(cislo - 1);
     }
 
-    // vypíše menu s čísly, aby uživatel věděl, co může zadat
-    public void vypis() {
+    public String vytvorVypis() {
+        StringBuilder text = new StringBuilder();
         int cislo = 1;
-        for (Map.Entry<String, Integer> polozka : polozky.entrySet()) {
-            System.out.println(cislo + " " + polozka.getKey() + " - " + polozka.getValue() + " Kc");
+        for (Map.Entry<String, BigDecimal> polozka : polozky.entrySet()) {
+            text.append(cislo).append("  ").append(polozka.getKey())
+                    .append(" - ").append(formatuj(polozka.getValue())).append(" Kc\n");
             cislo++;
         }
+        return text.toString();
     }
 }

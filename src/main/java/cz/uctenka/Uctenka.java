@@ -1,30 +1,30 @@
 package cz.uctenka;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.Locale;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 
 public class Uctenka {
-    private Podnik podnik;
-    private Menu menu;
-    private Map<String, Integer> nakup;
+    public static final int SIRKA = 40;
+    public static final int MAX_POCET = 999;
 
-    // Konstruktor
+    private final Podnik podnik;
+    private final Menu menu;
+    private final Map<String, Integer> nakup = new LinkedHashMap<>();
+
     public Uctenka(Podnik podnik, Menu menu) {
         this.podnik = podnik;
         this.menu = menu;
-        // LinkedHashMap - položky zůstanou v pořadí, v jakém je zákazník zadal
-        this.nakup = new LinkedHashMap<>();
     }
 
-    // Čte čísla položek, dokud uživatel nezadá H (hotovo)
     public void nactiNakup(Scanner scanner) {
         while (scanner.hasNextLine()) {
-            // odstraní neviditelný znak BOM, který Windows někdy pošle na začátek vstupu
-            String vstup = scanner.nextLine().replace(String.valueOf((char) 0xFEFF), "").trim();
+            String vstup = scanner.nextLine().replace("﻿", "").trim();
 
             if (vstup.equalsIgnoreCase("H")) {
                 return;
@@ -33,11 +33,21 @@ public class Uctenka {
                 continue;
             }
 
+            String[] casti = vstup.split("\\s+");
+            if (casti.length > 2) {
+                System.out.println("Neplatny vstup, zadejte cislo polozky (a pripadne pocet) nebo H.");
+                continue;
+            }
+
             int cislo;
+            int pocet = 1;
             try {
-                cislo = Integer.parseInt(vstup);
+                cislo = Integer.parseInt(casti[0]);
+                if (casti.length == 2) {
+                    pocet = Integer.parseInt(casti[1]);
+                }
             } catch (NumberFormatException e) {
-                System.out.println("Neplatny vstup, zadejte cislo polozky nebo H.");
+                System.out.println("Neplatny vstup, zadejte cislo polozky (a pripadne pocet) nebo H.");
                 continue;
             }
 
@@ -47,17 +57,20 @@ public class Uctenka {
                 continue;
             }
 
-            pridejPolozku(nazev, 1);
-            System.out.println("Pridano: " + nazev);
+            try {
+                pridejPolozku(nazev, pocet);
+            } catch (IllegalArgumentException e) {
+                System.out.println(e.getMessage());
+                continue;
+            }
+            System.out.println("Pridano: " + pocet + "x " + nazev);
         }
     }
 
-    // Nemá smysl tisknout prázdnou účtenku
     public boolean jePrazdna() {
         return nakup.isEmpty();
     }
 
-    // Přidání položky - jednoduchý if / else
     public void pridejPolozku(String nazev, int pocet) {
         if (!menu.obsahuje(nazev)) {
             throw new IllegalArgumentException("Polozka neni v menu: " + nazev);
@@ -66,59 +79,106 @@ public class Uctenka {
             throw new IllegalArgumentException("Pocet musi byt kladny: " + pocet);
         }
 
-        if (nakup.containsKey(nazev)) {
-            int staryPocet = nakup.get(nazev);
-            nakup.put(nazev, staryPocet + pocet);
-        } else {
-            nakup.put(nazev, pocet);
+        int novyPocet = nakup.getOrDefault(nazev, 0) + pocet;
+        if (pocet > MAX_POCET || novyPocet > MAX_POCET) {
+            throw new IllegalArgumentException("Maximalni pocet jedne polozky je " + MAX_POCET + ".");
         }
+        nakup.put(nazev, novyPocet);
     }
 
-    // Výpočet celkové ceny - obyčejný for cyklus
-    public double spocitejCelkem() {
-        double celkem = 0;
+    public int getPocet(String nazev) {
+        return nakup.getOrDefault(nazev, 0);
+    }
 
-        for (String nazev : nakup.keySet()) {
-            int pocet = nakup.get(nazev);
-            double cenaZaKus = menu.getCena(nazev);
-            celkem = celkem + (cenaZaKus * pocet);
+    public BigDecimal spocitejCelkem() {
+        BigDecimal celkem = BigDecimal.ZERO;
+        for (Map.Entry<String, Integer> polozka : nakup.entrySet()) {
+            celkem = celkem.add(menu.getCena(polozka.getKey()).multiply(BigDecimal.valueOf(polozka.getValue())));
         }
-
         return celkem;
     }
 
-    // Tvorba účtenky spojováním textu přes "+"
     public String vytvorText() {
-        String text = "";
+        return vytvorText(LocalDateTime.now());
+    }
 
-        text = text + "================================\n";
-        // Mezery natvrdo pro zarovnání na střed
-        text = text + "        " + podnik.getNazev() + "\n";
-        text = text + "       " + podnik.getAdresa() + "\n";
-        text = text + "         ICO: " + podnik.getIco() + "\n";
-        text = text + "--------------------------------\n";
+    public String vytvorText(LocalDateTime cas) {
+        StringBuilder text = new StringBuilder();
+        String dvojitaCara = "=".repeat(SIRKA) + "\n";
+        String cara = "-".repeat(SIRKA) + "\n";
 
-        for (String nazev : nakup.keySet()) {
-            int pocet = nakup.get(nazev);
-            double cenaSpolu = menu.getCena(nazev) * pocet;
+        text.append(dvojitaCara);
+        pridejNaStred(text, podnik.getNazev());
+        pridejNaStred(text, podnik.getAdresa());
+        pridejNaStred(text, "ICO: " + podnik.getIco());
+        text.append(cara);
 
-            String radek = pocet + "x " + nazev;
+        for (Map.Entry<String, Integer> polozka : nakup.entrySet()) {
+            String nazev = polozka.getKey();
+            int pocet = polozka.getValue();
+            BigDecimal cenaZaKus = menu.getCena(nazev);
+            BigDecimal cenaSpolu = cenaZaKus.multiply(BigDecimal.valueOf(pocet));
 
-            // Tady použijeme String.format, jak bylo v původním zadání
-            text = text + String.format(Locale.ROOT, "%-22s%10.2f\n", radek, cenaSpolu);
+            pridejRadek(text, nazev, Menu.formatuj(cenaSpolu));
+            if (pocet > 1) {
+                text.append("  ").append(pocet).append(" x ").append(Menu.formatuj(cenaZaKus)).append("\n");
+            }
         }
 
-        text = text + "--------------------------------\n";
-        text = text + String.format(Locale.ROOT, "%-20s%9.2f Kc\n", "CELKEM", spocitejCelkem());
+        text.append(cara);
+        pridejRadek(text, "CELKEM", Menu.formatuj(spocitejCelkem()) + " Kc");
+        text.append(cara);
+        text.append(cas.format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"))).append("\n");
+        if (!podnik.getPaticka().isEmpty()) {
+            text.append("\n");
+            pridejNaStred(text, podnik.getPaticka());
+        }
+        text.append(dvojitaCara);
 
-        // Aktuální čas
-        LocalDateTime ted = LocalDateTime.now();
-        DateTimeFormatter formatCasu = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
-        text = text + ted.format(formatCasu) + "\n";
+        return text.toString();
+    }
 
-        text = text + "     " + podnik.getPaticka() + "\n";
-        text = text + "================================\n";
+    private static void pridejNaStred(StringBuilder text, String obsah) {
+        for (String radek : zalom(obsah, SIRKA)) {
+            text.append(" ".repeat((SIRKA - radek.length()) / 2)).append(radek).append("\n");
+        }
+    }
 
-        return text;
+    private static void pridejRadek(StringBuilder text, String vlevo, String vpravo) {
+        int sirkaVlevo = Math.max(1, SIRKA - vpravo.length() - 1);
+        List<String> radky = zalom(vlevo, sirkaVlevo);
+        for (int i = 0; i < radky.size() - 1; i++) {
+            text.append(radky.get(i)).append("\n");
+        }
+        String posledni = radky.get(radky.size() - 1);
+        int mezery = Math.max(1, SIRKA - posledni.length() - vpravo.length());
+        text.append(posledni).append(" ".repeat(mezery)).append(vpravo).append("\n");
+    }
+
+    static List<String> zalom(String obsah, int sirka) {
+        List<String> radky = new ArrayList<>();
+        StringBuilder radek = new StringBuilder();
+        for (String slovo : obsah.trim().split("\\s+")) {
+            while (slovo.length() > sirka) {
+                if (radek.length() > 0) {
+                    radky.add(radek.toString());
+                    radek.setLength(0);
+                }
+                radky.add(slovo.substring(0, sirka));
+                slovo = slovo.substring(sirka);
+            }
+            if (radek.length() > 0 && radek.length() + 1 + slovo.length() > sirka) {
+                radky.add(radek.toString());
+                radek.setLength(0);
+            }
+            if (radek.length() > 0) {
+                radek.append(' ');
+            }
+            radek.append(slovo);
+        }
+        if (radek.length() > 0 || radky.isEmpty()) {
+            radky.add(radek.toString());
+        }
+        return radky;
     }
 }

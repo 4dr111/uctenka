@@ -1,40 +1,38 @@
 package cz.uctenka;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
+import java.io.StringReader;
+import java.nio.file.Path;
 import java.util.Properties;
 
 public class Podnik {
-    private String nazev;
-    private String adresa;
-    private String ico;
-    private String paticka;
+    private final String nazev;
+    private final String adresa;
+    private final String ico;
+    private final String paticka;
 
-    // nazevSouboru = soubor v src/main/resources (např. "podnik.properties"), je zabalený i v .jar
-    public Podnik(String nazevSouboru) throws IOException {
+    public Podnik(String obsah, String zdroj) throws IOException {
         Properties prop = new Properties();
+        prop.load(new StringReader(obsah));
 
-        try (InputStream input = Podnik.class.getResourceAsStream("/" + nazevSouboru)) {
-            if (input == null) {
-                throw new IOException("Soubor " + nazevSouboru + " nebyl nalezen");
-            }
-            // čtení v UTF-8, jinak se rozbije diakritika
-            prop.load(new InputStreamReader(input, StandardCharsets.UTF_8));
-        }
-
-        this.nazev = nactiUdaj(prop, "nazev");
-        this.adresa = nactiUdaj(prop, "adresa");
-        this.ico = nactiUdaj(prop, "ico");
-        this.paticka = nactiUdaj(prop, "paticka");
+        this.nazev = nactiPovinnyUdaj(prop, "nazev", zdroj);
+        this.adresa = nactiPovinnyUdaj(prop, "adresa", zdroj);
+        this.ico = nactiPovinnyUdaj(prop, "ico", zdroj);
+        this.paticka = prop.getProperty("paticka", "").trim();
     }
 
-    // vrátí údaj bez mezer na konci, nebo vyhodí chybu, když v souboru chybí
-    private String nactiUdaj(Properties prop, String klic) throws IOException {
+    public static Podnik zeSouboru(Path cesta) throws IOException {
+        return new Podnik(Soubor.nactiSoubor(cesta), cesta.toString());
+    }
+
+    public static Podnik vychozi() throws IOException {
+        return new Podnik(Soubor.nactiZProgramu("podnik.properties"), "podnik.properties");
+    }
+
+    private static String nactiPovinnyUdaj(Properties prop, String klic, String zdroj) throws IOException {
         String hodnota = prop.getProperty(klic);
-        if (hodnota == null) {
-            throw new IOException("V souboru chybi udaj: " + klic);
+        if (hodnota == null || hodnota.isBlank()) {
+            throw new IOException("V souboru " + zdroj + " chybi udaj: " + klic);
         }
         return hodnota.trim();
     }
